@@ -3,7 +3,7 @@ Humanizer agent for making AI-generated comments sound more natural and authenti
 """
 
 from typing import Dict, Any
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from ..prompts.templates import HUMANIZER_PROMPT
 
 

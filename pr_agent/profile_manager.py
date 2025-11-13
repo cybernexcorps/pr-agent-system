@@ -11,14 +11,33 @@ from pathlib import Path
 class ExecutiveProfileManager:
     """Manages executive profiles for PR comment generation."""
 
-    def __init__(self, profiles_dir: str = "pr_agent/config/executive_profiles"):
+    def __init__(self, profiles_dir: str = None):
         """
         Initialize profile manager.
 
         Args:
-            profiles_dir: Directory containing executive profile JSON files
+            profiles_dir: Directory containing executive profile JSON files.
+                         If None, uses default location relative to package root.
         """
-        self.profiles_dir = Path(profiles_dir)
+        if profiles_dir is None:
+            # Resolve path relative to this file's location
+            # __file__ is at pr_agent/profile_manager.py
+            # We want pr_agent/config/executive_profiles
+            package_dir = Path(__file__).parent  # pr_agent/
+            self.profiles_dir = package_dir / "config" / "executive_profiles"
+        else:
+            profiles_path = Path(profiles_dir)
+            # If relative path, try to resolve relative to package root first
+            if not profiles_path.is_absolute():
+                package_dir = Path(__file__).parent  # pr_agent/
+                potential_path = package_dir / profiles_dir
+                if potential_path.exists():
+                    self.profiles_dir = potential_path
+                else:
+                    # Try as-is (might be relative to current working directory)
+                    self.profiles_dir = profiles_path
+            else:
+                self.profiles_dir = profiles_path
         self._profiles_cache = {}
 
     def load_profile(self, executive_name: str) -> Dict[str, Any]:

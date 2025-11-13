@@ -5,7 +5,7 @@ Media researcher agent for analyzing media outlets and journalists.
 from typing import Dict, Any
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from ..tools.search import MediaResearchTool
 from ..prompts.templates import MEDIA_RESEARCH_PROMPT
 

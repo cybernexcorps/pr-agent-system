@@ -3,7 +3,7 @@ Data researcher agent for finding supporting statistics and information.
 """
 
 from typing import Dict, Any, List
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from ..tools.search import WebSearchTool
 from ..prompts.templates import DATA_RESEARCH_PROMPT
 

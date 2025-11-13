@@ -3,7 +3,7 @@ Comment drafter agent for generating professional PR comments.
 """
 
 from typing import Dict, Any
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from ..prompts.templates import COMMENT_DRAFTING_PROMPT
 
 
