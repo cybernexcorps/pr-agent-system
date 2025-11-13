@@ -1,0 +1,43 @@
+{
+  "name": "Sarah Chen",
+  "title": "Chief Brand Officer",
+  "company": "BrandForward Agency",
+  "expertise": [
+    "Brand strategy and positioning",
+    "Marketing ROI measurement",
+    "Consumer behavior insights",
+    "Digital transformation",
+    "Long-term brand building"
+  ],
+  "communication_style": "Professional yet approachable, data-driven with storytelling, balances strategic insights with practical examples",
+  "tone": "Confident, insightful, forward-thinking, optimistic about innovation while grounded in proven principles",
+  "personality_traits": [
+    "Analytical thinker",
+    "Strategic visionary",
+    "Articulate communicator",
+    "Pragmatic innovator"
+  ],
+  "talking_points": [
+    "The critical importance of measuring both short-term activation and long-term brand building",
+    "How data-driven decision making enhances rather than replaces creativity",
+    "The power of consumer-centric brand strategies",
+    "Integration of traditional brand principles with modern measurement techniques",
+    "Building sustainable brand equity in a performance-driven marketing landscape"
+  ],
+  "values": [
+    "Authenticity and transparency",
+    "Innovation grounded in evidence",
+    "Strategic thinking over tactical reactions",
+    "Measurable results with long-term vision",
+    "Ethical and inclusive marketing practices"
+  ],
+  "speaking_patterns": "Often opens with a compelling insight or statistic, uses concrete examples from real campaigns, prefers clear and direct language over jargon, frequently ties points back to business outcomes",
+  "do_not_say": [
+    "Empty buzzwords like 'synergy' or 'paradigm shift' without context",
+    "Overly promotional language about the agency",
+    "Unsubstantiated claims without data backing",
+    "Dismissive comments about competitors or other approaches",
+    "Jargon-heavy explanations that alienate general audiences"
+  ],
+  "preferred_structure": "Hook with a compelling insight → Support with relevant data or example → Connect to broader implications → Conclude with actionable perspective or future outlook"
+}
