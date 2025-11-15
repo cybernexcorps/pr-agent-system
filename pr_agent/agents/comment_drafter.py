@@ -2,7 +2,7 @@
 Comment drafter agent for generating professional PR comments.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, AsyncIterator
 from langchain_core.prompts import PromptTemplate
 from ..prompts.templates import COMMENT_DRAFTING_PROMPT
 
@@ -115,3 +115,115 @@ class CommentDrafterAgent:
             parts.append(f"Values: {', '.join(profile['values'])}")
 
         return "\n".join(parts)
+
+    async def draft_comment_async(
+        self,
+        executive_name: str,
+        executive_profile: Dict[str, Any],
+        article_text: str,
+        journalist_question: str,
+        media_outlet: str,
+        media_research: Dict[str, Any],
+        supporting_data: Dict[str, Any]
+    ) -> str:
+        """
+        Async version: Draft a professional comment on behalf of the executive.
+
+        Args:
+            executive_name: Name of the executive
+            executive_profile: Executive's profile and communication style
+            article_text: The article text
+            journalist_question: Question from the journalist
+            media_outlet: Name of the media outlet
+            media_research: Research about the media outlet
+            supporting_data: Supporting statistics and data
+
+        Returns:
+            Drafted comment text
+
+        Example:
+            >>> agent = CommentDrafterAgent(llm)
+            >>> comment = await agent.draft_comment_async(...)
+        """
+        # Format executive profile
+        profile_text = self._format_profile(executive_profile)
+
+        # Format media research
+        media_research_text = media_research.get("analysis", "No media research available")
+
+        # Format supporting data
+        supporting_data_text = supporting_data.get("curated_data", "No supporting data available")
+
+        # Generate comment
+        prompt = self.prompt_template.format(
+            executive_name=executive_name,
+            executive_title=executive_profile.get("title", "Executive"),
+            executive_profile=profile_text,
+            article_text=article_text[:2000],  # Limit article length
+            journalist_question=journalist_question,
+            media_outlet=media_outlet,
+            media_research=media_research_text,
+            supporting_data=supporting_data_text
+        )
+
+        response = await self.llm.ainvoke(prompt)
+        comment = response.content if hasattr(response, 'content') else str(response)
+
+        return comment.strip()
+
+    async def draft_comment_stream(
+        self,
+        executive_name: str,
+        executive_profile: Dict[str, Any],
+        article_text: str,
+        journalist_question: str,
+        media_outlet: str,
+        media_research: Dict[str, Any],
+        supporting_data: Dict[str, Any]
+    ) -> AsyncIterator[str]:
+        """
+        Stream the comment drafting process with real-time token generation.
+
+        Args:
+            executive_name: Name of the executive
+            executive_profile: Executive's profile and communication style
+            article_text: The article text
+            journalist_question: Question from the journalist
+            media_outlet: Name of the media outlet
+            media_research: Research about the media outlet
+            supporting_data: Supporting statistics and data
+
+        Yields:
+            Chunks of the drafted comment as they are generated
+
+        Example:
+            >>> agent = CommentDrafterAgent(llm)
+            >>> async for chunk in agent.draft_comment_stream(...):
+            ...     print(chunk, end='', flush=True)
+        """
+        # Format executive profile
+        profile_text = self._format_profile(executive_profile)
+
+        # Format media research
+        media_research_text = media_research.get("analysis", "No media research available")
+
+        # Format supporting data
+        supporting_data_text = supporting_data.get("curated_data", "No supporting data available")
+
+        # Generate comment with streaming
+        prompt = self.prompt_template.format(
+            executive_name=executive_name,
+            executive_title=executive_profile.get("title", "Executive"),
+            executive_profile=profile_text,
+            article_text=article_text[:2000],  # Limit article length
+            journalist_question=journalist_question,
+            media_outlet=media_outlet,
+            media_research=media_research_text,
+            supporting_data=supporting_data_text
+        )
+
+        # Stream response tokens
+        async for chunk in self.llm.astream(prompt):
+            content = chunk.content if hasattr(chunk, 'content') else str(chunk)
+            if content:
+                yield content

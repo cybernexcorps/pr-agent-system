@@ -41,3 +41,10 @@ class AgentState(TypedDict):
     # Workflow tracking
     current_step: str
     errors: List[str]
+
+    # Phase 3: Memory and RAG fields
+    session_id: Optional[str]  # Session ID for conversation tracking
+    past_comments: Optional[List[Dict[str, Any]]]  # Similar past comments from memory
+    retrieved_examples: Optional[List[Dict[str, Any]]]  # Retrieved examples from RAG
+    conversation_history: Optional[List[Dict[str, str]]]  # Conversation history for the session
+    evaluation_scores: Optional[Dict[str, float]]  # Quality evaluation scores
