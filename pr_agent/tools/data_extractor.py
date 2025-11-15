@@ -1,5 +1,20 @@
 """
 Data extraction tool for analyzing articles and extracting key information.
+
+NOTE: This module is a STUB for future development. It is NOT currently used
+in the PR Agent workflow. The implementations below are placeholders only.
+
+To properly implement this tool, consider using:
+- spaCy for entity recognition
+- transformers/BERT for advanced NLP tasks
+- LLM-based extraction with structured outputs
+- Sentiment analysis models (VADER, TextBlob, or transformer-based)
+
+Before activating this tool in production:
+1. Implement proper NLP models (spaCy, transformers, etc.)
+2. Add comprehensive error handling
+3. Write unit tests for all extraction methods
+4. Integrate into the agent workflow if needed
 """
 
 from typing import Dict, Any, List
@@ -7,7 +22,12 @@ from langchain_core.tools import Tool
 
 
 class DataExtractorTool:
-    """Tool for extracting structured data from articles and questions."""
+    """
+    Tool for extracting structured data from articles and questions.
+
+    WARNING: This is a stub implementation. Methods return placeholder data.
+    NOT currently integrated into the PR Agent workflow.
+    """
 
     def extract_key_points(self, text: str) -> List[str]:
         """

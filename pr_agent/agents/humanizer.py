@@ -2,8 +2,8 @@
 Humanizer agent for making AI-generated comments sound more natural and authentic.
 """
 
-from typing import Dict, Any
-from langchain.prompts import PromptTemplate
+from typing import Dict, Any, AsyncIterator
+from langchain_core.prompts import PromptTemplate
 from ..prompts.templates import HUMANIZER_PROMPT
 
 
@@ -80,3 +80,77 @@ class HumanizerAgent:
             notes.append(f"Speaking patterns: {profile['speaking_patterns']}")
 
         return " | ".join(notes) if notes else "Natural, professional, conversational"
+
+    async def humanize_comment_async(
+        self,
+        drafted_comment: str,
+        executive_name: str,
+        executive_profile: Dict[str, Any]
+    ) -> str:
+        """
+        Async version: Humanize a drafted comment to make it sound more natural.
+
+        Args:
+            drafted_comment: The original drafted comment
+            executive_name: Name of the executive
+            executive_profile: Executive's profile with style notes
+
+        Returns:
+            Humanized comment text
+
+        Example:
+            >>> agent = HumanizerAgent(llm)
+            >>> humanized = await agent.humanize_comment_async(comment, "John Doe", profile)
+        """
+        # Extract style notes
+        style_notes = self._extract_style_notes(executive_profile)
+
+        # Generate humanized version
+        prompt = self.prompt_template.format(
+            drafted_comment=drafted_comment,
+            executive_name=executive_name,
+            executive_style_notes=style_notes
+        )
+
+        response = await self.llm.ainvoke(prompt)
+        humanized = response.content if hasattr(response, 'content') else str(response)
+
+        return humanized.strip()
+
+    async def humanize_comment_stream(
+        self,
+        drafted_comment: str,
+        executive_name: str,
+        executive_profile: Dict[str, Any]
+    ) -> AsyncIterator[str]:
+        """
+        Stream the humanization process with real-time token generation.
+
+        Args:
+            drafted_comment: The original drafted comment
+            executive_name: Name of the executive
+            executive_profile: Executive's profile with style notes
+
+        Yields:
+            Chunks of the humanized comment as they are generated
+
+        Example:
+            >>> agent = HumanizerAgent(llm)
+            >>> async for chunk in agent.humanize_comment_stream(comment, "John Doe", profile):
+            ...     print(chunk, end='', flush=True)
+        """
+        # Extract style notes
+        style_notes = self._extract_style_notes(executive_profile)
+
+        # Generate humanized version with streaming
+        prompt = self.prompt_template.format(
+            drafted_comment=drafted_comment,
+            executive_name=executive_name,
+            executive_style_notes=style_notes
+        )
+
+        # Stream response tokens
+        async for chunk in self.llm.astream(prompt):
+            content = chunk.content if hasattr(chunk, 'content') else str(chunk)
+            if content:
+                yield content

@@ -16,11 +16,18 @@ class PRAgentConfig:
     # LLM Configuration
     openai_api_key: Optional[str] = field(default_factory=lambda: os.getenv("OPENAI_API_KEY"))
     anthropic_api_key: Optional[str] = field(default_factory=lambda: os.getenv("ANTHROPIC_API_KEY"))
-    model_name: str = "gpt-4o"  # Main agent model
+    model_name: str = "claude-sonnet-4-5-20250929"  # Latest Claude Sonnet 4.5 model
     temperature: float = 0.7
 
+    # Model Performance Settings
+    max_tokens: int = 4096  # Maximum output tokens
+    max_input_tokens: int = 50000  # Maximum input context
+    enable_streaming: bool = True  # Enable streaming for real-time feedback
+    max_retries: int = 3  # Number of retries for failed LLM calls
+    request_timeout: float = 60.0  # Request timeout in seconds
+
     # Humanizer Configuration
-    humanizer_model: str = "gpt-4o"
+    humanizer_model: str = "claude-sonnet-4-5-20250929"
     humanizer_temperature: float = 0.9  # Higher temperature for more natural language
 
     # Search Configuration
@@ -39,8 +46,48 @@ class PRAgentConfig:
     profiles_dir: str = "pr_agent/config/executive_profiles"
 
     # Agent Behavior
-    max_retries: int = 3
     enable_verbose_logging: bool = True
+
+    # Cache Configuration
+    redis_url: str = field(default_factory=lambda: os.getenv("REDIS_URL", "redis://localhost:6379"))
+    enable_cache: bool = field(default_factory=lambda: os.getenv("ENABLE_CACHE", "true").lower() == "true")
+    cache_ttl_comments: int = 3600  # 1 hour for full comment responses
+    cache_ttl_search: int = 86400  # 24 hours for search results
+    cache_ttl_media: int = 86400  # 24 hours for media research
+
+    # LangSmith Observability
+    langsmith_api_key: Optional[str] = field(default_factory=lambda: os.getenv("LANGSMITH_API_KEY"))
+    langsmith_project: str = "pr-agent-production"
+    enable_tracing: bool = True
+
+    # Structured Logging
+    log_level: str = "INFO"
+    log_format: str = "json"  # "json" or "console"
+
+    # Health Checks
+    health_check_enabled: bool = True
+    health_check_timeout: int = 5
+
+    # Async Settings
+    async_enabled: bool = True
+    max_concurrent_operations: int = 5
+
+    # Phase 3: Memory System Configuration
+    enable_memory: bool = field(default_factory=lambda: os.getenv("ENABLE_MEMORY", "false").lower() == "true")
+    memory_max_tokens: int = 2000  # Max tokens for short-term memory
+    memory_vector_store_path: str = "./data/memory_store"  # Path for vector store persistence
+    voyage_api_key: Optional[str] = field(default_factory=lambda: os.getenv("VOYAGE_API_KEY"))
+
+    # Phase 3: Evaluation Framework Configuration
+    enable_evaluation: bool = field(default_factory=lambda: os.getenv("ENABLE_EVALUATION", "false").lower() == "true")
+    evaluation_model: str = "claude-sonnet-4-5-20250929"  # Model for evaluation
+
+    # Phase 3: RAG Configuration
+    enable_rag: bool = field(default_factory=lambda: os.getenv("ENABLE_RAG", "false").lower() == "true")
+    rag_vector_store_path: str = "./data/rag_store"  # Path for RAG vector stores
+    rag_chunk_size: int = 1000  # Chunk size for document splitting
+    rag_chunk_overlap: int = 200  # Overlap between chunks
+    rag_top_k: int = 3  # Number of relevant results to retrieve
 
     def validate(self) -> bool:
         """Validate that required configuration is present."""
