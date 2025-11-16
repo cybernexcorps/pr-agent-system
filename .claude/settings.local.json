@@ -9,7 +9,8 @@
       "Bash(python test_phase2_implementation.py:*)",
       "Bash(pip install:*)",
       "Bash(python -m pip install:*)",
-      "Bash(python -c:*)"
+      "Bash(python -c:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
