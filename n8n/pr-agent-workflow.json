@@ -1,0 +1,456 @@
+{
+  "name": "PR Agent System - Complete Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pr-agent/generate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "pr-agent-generate"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Load Executive Profile from JSON file\nconst executiveName = $json.body.executive_name;\nconst fs = require('fs');\nconst path = require('path');\n\n// Normalize executive name for file lookup (lowercase, underscores)\nconst normalizedName = executiveName.toLowerCase().replace(/\\s+/g, '_');\nconst profilePath = path.join(__dirname, '..', 'pr_agent', 'config', 'executive_profiles', `${normalizedName}.json`);\n\ntry {\n  const profileData = fs.readFileSync(profilePath, 'utf8');\n  const profile = JSON.parse(profileData);\n  \n  return {\n    ...{...$json.body},\n    executive_profile: profile,\n    current_step: 'profile_loaded',\n    errors: []\n  };\n} catch (error) {\n  return {\n    ...$json.body,\n    executive_profile: null,\n    current_step: 'profile_load_failed',\n    errors: [`Failed to load profile: ${error.message}`]\n  };\n}"
+      },
+      "id": "load-profile",
+      "name": "Load Executive Profile",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SERPER_API_KEY ? 'https://google.serper.dev/search' : 'https://api.tavily.com/search' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "={{ $env.SERPER_API_KEY || $env.TAVILY_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.media_outlet + ' journalism style tone coverage ' + ($json.journalist_name || '') }}"
+            },
+            {
+              "name": "num",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "media-research",
+      "name": "Media Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SERPER_API_KEY ? 'https://google.serper.dev/search' : 'https://api.tavily.com/search' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "={{ $env.SERPER_API_KEY || $env.TAVILY_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.journalist_question.substring(0, 100) + ' statistics data research' }}"
+            },
+            {
+              "name": "num",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "data-research",
+      "name": "Data Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Merge research results from parallel branches\nconst items = $items();\n\n// Get the base data from load profile\nconst baseItem = items[0];\n\n// Find media research and data research results\nlet mediaResearch = { analysis: 'Media research unavailable' };\nlet supportingData = { curated_data: 'No supporting data available' };\n\nfor (const item of items) {\n  if (item.json.organic) {\n    // This is search results - determine if media or data\n    if (item.json._from_media_research) {\n      mediaResearch = {\n        analysis: item.json.organic.map(r => `${r.title}: ${r.snippet}`).join('\\n')\n      };\n    } else {\n      supportingData = {\n        curated_data: item.json.organic.map(r => `${r.title}: ${r.snippet} (${r.link})`).join('\\n')\n      };\n    }\n  }\n}\n\nreturn {\n  ...baseItem.json,\n  media_research: mediaResearch,\n  supporting_data: supportingData,\n  current_step: 'research_completed'\n};"
+      },
+      "id": "merge-research",
+      "name": "Merge Research Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.OPENAI_API_KEY ? 'https://api.openai.com/v1/chat/completions' : 'https://api.anthropic.com/v1/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $env.OPENAI_API_KEY ? 'Bearer ' + $env.OPENAI_API_KEY : 'x-api-key ' + $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $env.OPENAI_API_KEY ? JSON.stringify({\n  model: 'gpt-4o',\n  temperature: 0.7,\n  max_tokens: 4096,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are a professional PR comment writer. Generate a well-researched, professional comment for the executive based on the provided information.'\n    },\n    {\n      role: 'user',\n      content: `Generate a professional PR comment for ${$json.executive_name} (${$json.executive_profile.title}) responding to this journalist question.\\n\\nArticle Context: ${$json.article_text.substring(0, 2000)}\\n\\nJournalist Question: ${$json.journalist_question}\\n\\nMedia Outlet: ${$json.media_outlet}\\n\\nMedia Research: ${JSON.stringify($json.media_research)}\\n\\nSupporting Data: ${JSON.stringify($json.supporting_data)}\\n\\nExecutive Profile:\\n- Communication Style: ${$json.executive_profile.communication_style}\\n- Expertise: ${$json.executive_profile.expertise.join(', ')}\\n- Tone: ${$json.executive_profile.tone}\\n- Talking Points: ${$json.executive_profile.talking_points.join(', ')}\\n- Do NOT say: ${$json.executive_profile.do_not_say.join(', ')}\\n\\nGenerate a professional, data-backed comment that matches the executive's style.`\n    }\n  ]\n}) : JSON.stringify({\n  model: 'claude-sonnet-4-5-20250929',\n  temperature: 0.7,\n  max_tokens: 4096,\n  messages: [\n    {\n      role: 'user',\n      content: `You are a professional PR comment writer. Generate a well-researched, professional comment for ${$json.executive_name} (${$json.executive_profile.title}) responding to this journalist question.\\n\\nArticle Context: ${$json.article_text.substring(0, 2000)}\\n\\nJournalist Question: ${$json.journalist_question}\\n\\nMedia Outlet: ${$json.media_outlet}\\n\\nMedia Research: ${JSON.stringify($json.media_research)}\\n\\nSupporting Data: ${JSON.stringify($json.supporting_data)}\\n\\nExecutive Profile:\\n- Communication Style: ${$json.executive_profile.communication_style}\\n- Expertise: ${$json.executive_profile.expertise.join(', ')}\\n- Tone: ${$json.executive_profile.tone}\\n- Talking Points: ${$json.executive_profile.talking_points.join(', ')}\\n- Do NOT say: ${$json.executive_profile.do_not_say.join(', ')}\\n\\nGenerate a professional, data-backed comment that matches the executive's style.`\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "id": "draft-comment",
+      "name": "Draft Comment (LLM)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract drafted comment from LLM response\nconst response = $json;\n\nlet draftedComment = '';\n\nif (response.choices) {\n  // OpenAI response format\n  draftedComment = response.choices[0].message.content;\n} else if (response.content) {\n  // Anthropic response format\n  draftedComment = response.content[0].text;\n}\n\nreturn {\n  ...$items()[0].json,\n  drafted_comment: draftedComment,\n  current_step: 'comment_drafted'\n};"
+      },
+      "id": "extract-draft",
+      "name": "Extract Drafted Comment",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.OPENAI_API_KEY ? 'https://api.openai.com/v1/chat/completions' : 'https://api.anthropic.com/v1/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $env.OPENAI_API_KEY ? 'Bearer ' + $env.OPENAI_API_KEY : 'x-api-key ' + $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $env.OPENAI_API_KEY ? JSON.stringify({\n  model: 'gpt-4o',\n  temperature: 0.9,\n  max_tokens: 4096,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are an expert at making professional comments sound natural and authentic while maintaining professionalism.'\n    },\n    {\n      role: 'user',\n      content: `Humanize and refine this comment to sound more natural and authentic, while maintaining professionalism and the executive's voice.\\n\\nDrafted Comment: ${$json.drafted_comment}\\n\\nExecutive Name: ${$json.executive_name}\\n\\nExecutive Profile:\\n- Speaking Patterns: ${$json.executive_profile.speaking_patterns}\\n- Personality Traits: ${$json.executive_profile.personality_traits.join(', ')}\\n- Communication Style: ${$json.executive_profile.communication_style}\\n\\nMake it sound more conversational, vary sentence length, and ensure it feels authentic. Keep all facts and data but improve flow and readability.`\n    }\n  ]\n}) : JSON.stringify({\n  model: 'claude-sonnet-4-5-20250929',\n  temperature: 0.9,\n  max_tokens: 4096,\n  messages: [\n    {\n      role: 'user',\n      content: `You are an expert at making professional comments sound natural and authentic while maintaining professionalism. Humanize and refine this comment to sound more natural and authentic.\\n\\nDrafted Comment: ${$json.drafted_comment}\\n\\nExecutive Name: ${$json.executive_name}\\n\\nExecutive Profile:\\n- Speaking Patterns: ${$json.executive_profile.speaking_patterns}\\n- Personality Traits: ${$json.executive_profile.personality_traits.join(', ')}\\n- Communication Style: ${$json.executive_profile.communication_style}\\n\\nMake it sound more conversational, vary sentence length, and ensure it feels authentic. Keep all facts and data but improve flow and readability.`\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "id": "humanize-comment",
+      "name": "Humanize Comment (LLM)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract humanized comment from LLM response\nconst response = $json;\n\nlet humanizedComment = '';\n\nif (response.choices) {\n  // OpenAI response format\n  humanizedComment = response.choices[0].message.content;\n} else if (response.content) {\n  // Anthropic response format\n  humanizedComment = response.content[0].text;\n} else {\n  // Fallback to drafted comment\n  humanizedComment = $items()[0].json.drafted_comment;\n}\n\nreturn {\n  ...$items()[0].json,\n  humanized_comment: humanizedComment,\n  current_step: 'comment_humanized'\n};"
+      },
+      "id": "extract-humanized",
+      "name": "Extract Humanized Comment",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1650, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.EMAIL_FROM }}",
+        "toEmail": "={{ $json.pr_manager_email || $env.PR_MANAGER_EMAIL }}",
+        "subject": "PR Comment Approval Required: {{ $json.executive_name }} - {{ $json.media_outlet }}",
+        "emailType": "html",
+        "text": "=<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 800px; margin: 0 auto; padding: 20px; }\n    .header { background-color: #2c3e50; color: white; padding: 20px; text-align: center; }\n    .section { background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 5px; }\n    .section h2 { margin-top: 0; color: #2c3e50; }\n    .comment-box { background-color: white; padding: 15px; border-left: 4px solid #3498db; margin: 10px 0; }\n    .metadata { font-size: 0.9em; color: #666; }\n    .footer { text-align: center; margin-top: 30px; padding: 20px; color: #666; font-size: 0.9em; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>PR Comment Approval Required</h1>\n      <p>Generated by PR Agent System</p>\n    </div>\n    \n    <div class=\"section\">\n      <h2>Request Details</h2>\n      <p><strong>Executive:</strong> {{ $json.executive_name }}</p>\n      <p><strong>Title:</strong> {{ $json.executive_profile.title }}</p>\n      <p><strong>Media Outlet:</strong> {{ $json.media_outlet }}</p>\n      <p><strong>Journalist:</strong> {{ $json.journalist_name || 'Not specified' }}</p>\n      <p><strong>Article URL:</strong> {{ $json.article_url || 'Not provided' }}</p>\n    </div>\n    \n    <div class=\"section\">\n      <h2>Journalist Question</h2>\n      <p>{{ $json.journalist_question }}</p>\n    </div>\n    \n    <div class=\"section\">\n      <h2>Generated Comment (Humanized)</h2>\n      <div class=\"comment-box\">\n        <p>{{ $json.humanized_comment }}</p>\n      </div>\n    </div>\n    \n    <div class=\"section\">\n      <h2>Original Draft (For Reference)</h2>\n      <div class=\"comment-box\">\n        <p style=\"color: #666;\">{{ $json.drafted_comment }}</p>\n      </div>\n    </div>\n    \n    <div class=\"section\">\n      <h2>Supporting Research</h2>\n      <h3>Media Research</h3>\n      <p class=\"metadata\">{{ JSON.stringify($json.media_research) }}</p>\n      \n      <h3>Supporting Data</h3>\n      <p class=\"metadata\">{{ JSON.stringify($json.supporting_data) }}</p>\n    </div>\n    \n    <div class=\"footer\">\n      <p>This email was automatically generated by the PR Agent System</p>\n      <p>Timestamp: {{ $json.timestamp || new Date().toISOString() }}</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {
+          "ccEmail": "",
+          "bccEmail": ""
+        }
+      },
+      "id": "send-email",
+      "name": "Send Email to PR Manager",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1850, 300],
+      "credentials": {
+        "smtp": {
+          "id": "1",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Prepare final response\nconst now = new Date().toISOString();\n\nreturn {\n  success: true,\n  article_text: $json.article_text,\n  article_url: $json.article_url || null,\n  journalist_question: $json.journalist_question,\n  media_outlet: $json.media_outlet,\n  journalist_name: $json.journalist_name || null,\n  executive_name: $json.executive_name,\n  executive_profile: $json.executive_profile,\n  media_research: $json.media_research,\n  supporting_data: $json.supporting_data,\n  drafted_comment: $json.drafted_comment,\n  humanized_comment: $json.humanized_comment,\n  timestamp: now,\n  approval_status: 'pending',\n  email_sent: true,\n  pr_manager_email: $json.pr_manager_email || $env.PR_MANAGER_EMAIL,\n  current_step: 'completed',\n  errors: $json.errors || []\n};"
+      },
+      "id": "prepare-response",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2050, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.errors && $json.errors.length > 0 }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-errors",
+      "name": "Check for Errors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 500]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Error handler - return error response\nreturn {\n  success: false,\n  error: $json.errors[0],\n  errors: $json.errors,\n  executive_name: $json.executive_name,\n  media_outlet: $json.media_outlet,\n  timestamp: new Date().toISOString(),\n  current_step: $json.current_step\n};"
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load Executive Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Executive Profile": {
+      "main": [
+        [
+          {
+            "node": "Media Research",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Data Research",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check for Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Media Research": {
+      "main": [
+        [
+          {
+            "node": "Merge Research Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Research": {
+      "main": [
+        [
+          {
+            "node": "Merge Research Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Research Results": {
+      "main": [
+        [
+          {
+            "node": "Draft Comment (LLM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Comment (LLM)": {
+      "main": [
+        [
+          {
+            "node": "Extract Drafted Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Drafted Comment": {
+      "main": [
+        [
+          {
+            "node": "Humanize Comment (LLM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Humanize Comment (LLM)": {
+      "main": [
+        [
+          {
+            "node": "Extract Humanized Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Humanized Comment": {
+      "main": [
+        [
+          {
+            "node": "Send Email to PR Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email to PR Manager": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Response": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Errors": {
+      "main": [
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Response": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-17T00:00:00.000Z",
+      "updatedAt": "2025-01-17T00:00:00.000Z",
+      "id": "1",
+      "name": "PR Agent"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-01-17T00:00:00.000Z",
+  "versionId": "1"
+}

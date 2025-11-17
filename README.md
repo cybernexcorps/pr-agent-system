@@ -14,10 +14,21 @@
 
 The PR Agent System automates the research and drafting that branding-agency executives typically perform when responding to media requests. Multiple agents collaborate to keep every response well-researched, on-brand, and human sounding.
 
+**🎉 NEW: n8n Workflow Implementation!**
+
+The PR Agent System is now available as a **visual n8n workflow**! This provides:
+- ✅ **Visual Design** - See and modify the entire pipeline graphically
+- ✅ **No-Code/Low-Code** - Easy maintenance without Python expertise
+- ✅ **Production-Ready** - Built-in monitoring, retries, and error handling
+- ✅ **Same Functionality** - Full feature parity with Python implementation
+
+👉 **[Get Started with n8n in 5 minutes →](n8n/QUICK_START.md)**
+
 **Production-Ready Features:**
 - ✅ **Phase 1 (Security)**: Secure credential handling, input validation, rate limiting
 - ✅ **Phase 2 (Performance)**: Async execution, Redis caching, streaming responses
 - ✅ **Phase 3 (Advanced AI)**: Memory system, quality evaluation, RAG patterns
+- ✅ **n8n Workflow**: Visual automation, easier deployment and maintenance
 
 ### Why It Matters
 
@@ -90,7 +101,56 @@ graph TD
 
 ---
 
-## Quick Start
+## 🚀 Quick Start - Choose Your Implementation
+
+The PR Agent System is available in **two implementations**:
+
+### Option 1: n8n Workflow (Recommended) ⭐
+
+**Visual, no-code automation workflow**
+
+**For n8n Cloud (No Docker!):**
+```bash
+# 1. Sign up at https://n8n.io (free tier available)
+# 2. Import pr-agent-workflow.json in the UI
+# 3. Configure credentials and environment variables
+# 4. Activate workflow
+```
+
+**For Self-Hosted:**
+```bash
+cd n8n
+docker-compose up -d
+# Then import workflow in UI at http://localhost:5678
+```
+
+✅ **Advantages:**
+- Visual workflow editor
+- No Python dependencies
+- Built-in monitoring
+- **n8n Cloud: Zero infrastructure!**
+- Easier for non-developers
+
+📖 **[Full n8n Setup Guide →](n8n/QUICK_START.md)**
+
+### Option 2: Python/LangChain (Advanced)
+
+**Traditional Python implementation with Phase 3 features**
+
+```bash
+pip install -r requirements.txt
+cp pr_agent/.env.example pr_agent/.env
+# Edit .env with your API keys
+```
+
+✅ **Advantages:**
+- Phase 3 features (Memory, RAG, Evaluation)
+- Token streaming support
+- Deep customization
+
+---
+
+## Python Quick Start
 
 ### Prerequisites
 

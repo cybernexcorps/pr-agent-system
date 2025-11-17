@@ -4,9 +4,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PR Agent System is an AI-powered comment generation system for branding agency executives using LangChain and LangGraph. It automates the process of generating professional PR comments for media inquiries through a multi-step workflow.
+PR Agent System is an AI-powered comment generation system for branding agency executives. It automates the process of generating professional PR comments for media inquiries through a multi-step workflow.
+
+**Available in two implementations:**
+1. **n8n Workflow** (Recommended) - Visual automation workflow, easier to maintain
+2. **Python/LangChain** (Advanced) - Code-based implementation with Phase 3 features
+
+### n8n Workflow Implementation
+
+The system has been fully reworked as an n8n visual automation workflow. Key files:
+- `n8n/pr-agent-workflow.json` - Main workflow (import into n8n)
+- `n8n/README.md` - Complete n8n documentation
+- `n8n/QUICK_START.md` - 5-minute setup guide
+- `n8n/MIGRATION_GUIDE.md` - Migration from Python to n8n
+- `n8n/docker-compose.yml` - Docker deployment configuration
+
+**Advantages of n8n:**
+- Visual workflow editor (no code changes needed)
+- Built-in monitoring and execution history
+- No Python dependencies
+- Easier for non-developers to maintain
 
 ## Essential Commands
+
+### n8n Commands (Recommended)
+```bash
+# Start n8n with Docker
+cd n8n
+docker-compose up -d
+
+# View n8n UI
+# Open http://localhost:5678
+
+# View logs
+docker logs pr-agent-n8n
+
+# Stop n8n
+docker-compose down
+
+# Production deployment (includes PostgreSQL, Redis, nginx)
+docker-compose --profile production up -d
+```
+
+### Python Commands (Advanced)
 
 ### Environment Setup
 ```bash
