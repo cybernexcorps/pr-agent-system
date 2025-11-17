@@ -2,17 +2,158 @@
 
 Get the PR Agent System running with n8n in under 10 minutes!
 
-## Prerequisites Checklist
+## Choose Your Setup
 
-Before starting, ensure you have:
+### Option A: n8n Cloud (Recommended - No Docker!) ☁️
 
+**Best for:** Production use, no infrastructure management
+
+**Advantages:**
+- No Docker or server setup needed
+- Automatic updates and scaling
+- Built-in SSL/HTTPS
+- Managed backups
+
+**Prerequisites:**
+- ✅ n8n Cloud account (free tier available at https://n8n.io)
+- ✅ OpenAI API key OR Anthropic API key
+- ✅ Serper API key OR Tavily API key
+- ✅ Gmail account with App Password (or other SMTP credentials)
+- ✅ At least one executive profile JSON file
+
+👉 **[Skip to Cloud Setup Instructions](#cloud-setup-5-minutes)**
+
+---
+
+### Option B: Self-Hosted with Docker 🐳
+
+**Best for:** Local development, custom infrastructure
+
+**Prerequisites:**
 - ✅ Docker and Docker Compose installed
 - ✅ OpenAI API key OR Anthropic API key
 - ✅ Serper API key OR Tavily API key
 - ✅ Gmail account with App Password (or other SMTP credentials)
 - ✅ At least one executive profile JSON file
 
-## Step 1: Configure Environment (2 minutes)
+👉 **[Skip to Self-Hosted Setup Instructions](#self-hosted-setup-10-minutes)**
+
+---
+
+## Cloud Setup (5 minutes)
+
+### Step 1: Sign Up for n8n Cloud (1 minute)
+
+1. Go to https://n8n.io
+2. Click **"Start for free"**
+3. Create account (email + password)
+4. Verify email
+5. Log in to your n8n Cloud instance
+
+### Step 2: Import Workflow (1 minute)
+
+1. In n8n Cloud UI, click **"Workflows"** → **"Add workflow"** → **"Import from File"**
+2. Download `pr-agent-workflow.json` from this repository
+3. Select the file and click **"Import"**
+
+### Step 3: Configure Environment Variables (1 minute)
+
+1. In your n8n Cloud instance, go to **"Settings"** → **"Environments"**
+2. Add these variables:
+
+```env
+OPENAI_API_KEY=sk-...           # OR
+ANTHROPIC_API_KEY=sk-ant-...
+
+SERPER_API_KEY=...              # OR
+TAVILY_API_KEY=...
+
+EMAIL_FROM=your-email@gmail.com
+EMAIL_PASSWORD=your_app_password
+PR_MANAGER_EMAIL=manager@agency.com
+```
+
+**Gmail App Password:** Generate at https://myaccount.google.com/apppasswords
+
+### Step 4: Configure SMTP Credentials (1 minute)
+
+1. Click **"Credentials"** → **"Add Credential"**
+2. Search for **"SMTP"** and select it
+3. Fill in:
+   - **User**: Your email address
+   - **Password**: Your app password
+   - **Host**: `smtp.gmail.com`
+   - **Port**: `587`
+   - **SSL/TLS**: ✅ Enable
+4. Click **"Save"**
+
+### Step 5: Link SMTP to Workflow (30 seconds)
+
+1. Open the **"PR Agent System - Complete Workflow"**
+2. Click the **"Send Email to PR Manager"** node
+3. Select your SMTP credential from dropdown
+4. Click **"Save"**
+
+### Step 6: Handle Executive Profiles (1 minute)
+
+Since executive profiles are local files, you have two options:
+
+**Option A: Inline Profiles (Quick)**
+
+Edit the "Load Executive Profile" function node to use inline JSON:
+
+```javascript
+// Inline profile data
+const profiles = {
+  "sarah_chen": {
+    "name": "Sarah Chen",
+    "title": "Chief Brand Officer",
+    "company": "BrandForward Agency",
+    // ... rest of profile
+  }
+};
+
+const executiveName = $json.body.executive_name;
+const normalizedName = executiveName.toLowerCase().replace(/\s+/g, '_');
+
+return {
+  ...$json.body,
+  executive_profile: profiles[normalizedName],
+  current_step: 'profile_loaded',
+  errors: []
+};
+```
+
+**Option B: External API (Production)**
+
+1. Host profiles in a simple API or cloud storage (S3, GitHub)
+2. Replace the function node with an HTTP Request node
+3. Fetch profiles from your API
+
+### Step 7: Activate and Test (1 minute)
+
+1. Toggle **"Active"** switch to ON
+2. Copy the **Production URL** from Webhook Trigger node
+3. Test with curl:
+
+```bash
+curl -X POST https://your-instance.app.n8n.cloud/webhook/pr-agent/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "article_text": "Test article...",
+    "journalist_question": "Test question?",
+    "media_outlet": "Test Outlet",
+    "executive_name": "Sarah Chen"
+  }'
+```
+
+🎉 **Done! You're running on n8n Cloud with zero infrastructure!**
+
+---
+
+## Self-Hosted Setup (10 minutes)
+
+### Step 1: Configure Environment (2 minutes)
 
 ```bash
 cd n8n

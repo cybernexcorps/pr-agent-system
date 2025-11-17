@@ -109,6 +109,15 @@ The PR Agent System is available in **two implementations**:
 
 **Visual, no-code automation workflow**
 
+**For n8n Cloud (No Docker!):**
+```bash
+# 1. Sign up at https://n8n.io (free tier available)
+# 2. Import pr-agent-workflow.json in the UI
+# 3. Configure credentials and environment variables
+# 4. Activate workflow
+```
+
+**For Self-Hosted:**
 ```bash
 cd n8n
 docker-compose up -d
@@ -119,6 +128,7 @@ docker-compose up -d
 - Visual workflow editor
 - No Python dependencies
 - Built-in monitoring
+- **n8n Cloud: Zero infrastructure!**
 - Easier for non-developers
 
 📖 **[Full n8n Setup Guide →](n8n/QUICK_START.md)**

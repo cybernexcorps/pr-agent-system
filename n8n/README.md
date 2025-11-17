@@ -66,24 +66,31 @@ Webhook Response
 
 ### 1. n8n Installation
 
-Choose one method:
+Choose your deployment method:
 
-**Option A: Docker (Recommended)**
+**Option A: n8n Cloud (Recommended - No Installation!) ☁️**
+
+- Sign up at https://n8n.io
+- Free tier available
+- No infrastructure management
+- Automatic updates and SSL
+- **No Docker required!**
+
+👉 See [Cloud Setup Guide](#cloud-setup) below
+
+**Option B: Docker (Self-Hosted)**
 ```bash
-docker run -d --name n8n \
-  -p 5678:5678 \
-  -v ~/.n8n:/home/node/.n8n \
-  -v /home/user/pr-agent-system:/data \
-  n8nio/n8n
+cd n8n
+docker-compose up -d
 ```
 
-**Option B: npm**
+**Option C: npm (Self-Hosted)**
 ```bash
 npm install -g n8n
 n8n start
 ```
 
-**Option C: Self-hosted**
+**Option D: Custom Deployment**
 Follow the [n8n installation guide](https://docs.n8n.io/hosting/)
 
 ### 2. API Keys Required
@@ -116,7 +123,61 @@ Example: `sarah_chen.json`
 
 ## Setup Instructions
 
-### Step 1: Import Workflow
+### Cloud Setup
+
+#### Step 1: Sign Up for n8n Cloud
+
+1. Go to https://n8n.io
+2. Click **"Start for free"**
+3. Create your account
+4. Log in to your n8n Cloud instance
+
+#### Step 2: Import Workflow
+
+1. In n8n Cloud UI, click **"Workflows"** → **"Add workflow"** → **"Import from File"**
+2. Download `pr-agent-workflow.json` from this repository
+3. Select the file and click **"Import"**
+
+#### Step 3: Configure Environment Variables
+
+In n8n Cloud, go to **Settings** → **Environments** and add:
+
+```env
+OPENAI_API_KEY=sk-...
+SERPER_API_KEY=...
+EMAIL_FROM=your-email@gmail.com
+EMAIL_PASSWORD=your_app_password
+PR_MANAGER_EMAIL=manager@agency.com
+```
+
+#### Step 4: Handle Executive Profiles
+
+Since n8n Cloud doesn't have access to local files, choose one of these options:
+
+**Option 1: Inline Profiles**
+- Edit the "Load Executive Profile" function node
+- Add profile JSON directly in the code
+- See [QUICK_START.md](QUICK_START.md#step-6-handle-executive-profiles-1-minute) for example
+
+**Option 2: External API**
+- Host profiles in cloud storage (S3, GitHub, etc.)
+- Replace function node with HTTP Request node
+- Fetch profiles from your API
+
+#### Step 5: Configure SMTP & Activate
+
+1. Add SMTP credentials in **Credentials** menu
+2. Link SMTP credential to "Send Email" node
+3. Toggle **Active** switch
+4. Copy webhook URL and test!
+
+**Done! No Docker needed!** 🎉
+
+---
+
+### Self-Hosted Setup
+
+#### Step 1: Import Workflow
 
 1. Open n8n UI (default: http://localhost:5678)
 2. Click **"Workflows"** → **"Import from File"**
