@@ -1,24 +1,38 @@
-__pycache__/
-*.pyc
+# Environment files
 .env
 *.env
 !.env.example
-.venv/
-venv/
-.ipynb_checkpoints/
-
-# Build artifacts
-*.egg-info/
-dist/
-build/
-*.egg
+!n8n/.env.example
 
 # IDE settings
 .claude/settings.local.json
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# Data and cache directories
-data/memory_store/
-*.db
-*.sqlite
+# OS files
+.DS_Store
+Thumbs.db
+
+# n8n local data (for self-hosted)
+.n8n/
+n8n_data/
+
+# Docker volumes
+postgres_data/
+redis_data/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*.backup
+*.bak
